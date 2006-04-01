@@ -1,5 +1,7 @@
 <?php
 
+/* $Id$ */
+
 /**
  *
  *       PrintWiki: A printable wiki.  Copyright 2006 Samuel Wilson.
