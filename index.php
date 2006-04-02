@@ -1,6 +1,4 @@
-<?php
-
-/* $Id$ */
+<?php /* $Id$ */
 
 /**
  *
@@ -29,9 +27,8 @@
  *
  */
 
-/**
- * Main execution block.
- */
+//****************************************************************************//
+// Main execution block begins here.
 if (!file_exists('./data/config.php') || $_GET['install']!="") {
     install();
 } else {
@@ -43,7 +40,15 @@ if (!file_exists('./data/config.php') || $_GET['install']!="") {
     } else if ($_GET['edit']!="") {
         $title = $_GET['edit'];
         editPage($title);
-        
+    
+    // PrintWiki admin.
+    } else if ($_GET['admin']!="") {
+    	admin($_GET['admin']);
+
+    // Title index.
+    } else if ($_GET['view'] == "index") {
+    	pageIndex();
+    	
     // Display page.
     } else {
         if ($_GET['title'] == '') $title = $Config['homepage'];
@@ -58,9 +63,12 @@ if (!file_exists('./data/config.php') || $_GET['install']!="") {
             displayPage($title);
         }
     }
-}
-
+} // end of main execution block.
 //****************************************************************************//
+
+function admin($section) {
+	putMessage("Admin section: ".$section);
+}
 
 function doLogin($queryString) {
     global $Config;
@@ -123,16 +131,23 @@ function displayTex() {
 } // end displayTex()
 
 function pageIndex() {
+	global $Config;
     $dh  = opendir("./data/pages");
     while (false !== ($filename = readdir($dh))) {
         if (substr($filename, 0, 1) != ".") $files[] = $filename;
     }
     sort($files);
-    echo "<ol>";
+    $style=("  ol {list-style-type:none}\n".
+            "    ol li a {display:block; line-height: 0.7em; float:left; width:30%; border-bottom:1px dotted black; margin:0 0.3em}\n".
+            "    ol li a {text-decoration:none; color:blue}\n".
+            "    h1, p {text-align:center}");
+    print(getHtmlHead("Title Index",$style)."<body>\n\n");
+    print("<p><a href='".$_SERVER['PHP_SELF']."?title=".$Config['homepage']."'>".
+          "[Home]</a></p>\n\n<h1>PrintWiki Title Index</h1>\n<hr />\n\n<ol>\n");
     foreach ($files as $title) {
-        echo "<li><a href='index.php?title=$title'>$title</a></li>\n";
+        echo "  <li><a href='index.php?title=$title'>$title</a></li>\n";
     }
-    echo "</ol>";
+    echo "</ol>\n\n</body>\n</html>\n";
 } // end pageIndex()
 
 function editPage($title) {
@@ -164,6 +179,7 @@ function editPage($title) {
             "<p id='actions'><input type='submit' name='save' value='Save' />\n".
             "<a href='".$_SERVER['PHP_SELF']."?title=$title'>Cancel</a>\n".
             "<a href='".$_SERVER['PHP_SELF']."?logout=true'>Logout</a>\n".
+            "<a href='".$_SERVER['PHP_SELF']."?admin=general'>Administration</a>\n".
             "</p></body>\n</html>");        
         }
     }
@@ -184,6 +200,7 @@ function displayPage($title) {
         "  <link type=\"text/css\" rel=\"stylesheet\" href=\"data/basic.css\" />\n".
         "<body>\n\n<p id='nav'><a ".
         "href='".$_SERVER['PHP_SELF']."?title=".$Config['homepage']."'>[Home]</a>".
+        "<a href=\"".$_SERVER['PHP_SELF']."?view=index\">[Index]</a>\n".
         "</p>\n\n<h1>$title</h1>\n\n<div id='page'>\n\n$page\n</div><!-- end ".
         "div#page -->\n\n<p id='edit'>".
         "<a href='".$_SERVER['PHP_SELF']."?edit=$title'>Edit</a></p>\n\n</body>\n</html>");
