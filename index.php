@@ -67,7 +67,63 @@ if (!file_exists('./data/config.php') || $_GET['install']!="") {
 //****************************************************************************//
 
 function admin($section) {
-	putMessage("Admin section: ".$section);
+	global $Config;
+	doLogin("admin=general");
+	if ($_SESSION['logged-in']) {
+		if ($_POST['submit'] == "Save") {
+			$Config['stylesheet'] = $_POST['stylesheet'];
+			$configData = ("<?php\n\n".
+				"if (\$_SERVER['PHP_SELF'] == \"config.php\") {\n".
+				"    header(\"HTTP/1.0 403 Forbidden\");\n".
+				"} else {\n".
+				"    \$Config[\"homepage\"]   = \"".$Config["homepage"]."\";\n".
+				"    \$Config[\"username\"]   = \"".$Config["username"]."\";\n".
+				"    \$Config[\"password\"]   = \"".$Config["password"]."\";\n".
+				"    \$Config[\"email\"]      = \"".$Config["email"]."\";\n\n".
+				"    \$Config[\"stylesheet\"] = \"".$Config['stylesheet']."\";\n\n".
+				"}\n".
+				"?>");
+			if ($configHandle = fopen("./data/config.php",'w')) {
+				if ($e = fwrite($configHandle, $configData)) {
+					if (fclose($configHandle)) {
+						$message = "Administration options saved.";
+					} else {
+						$message = "Unable to close configuration file; please try again.";
+					}
+				} else {
+					$message = "Unable to write configuration file; please try again.";
+				}
+			} else {
+				$message = "Unable to open configuration file; please try again.";
+			}
+		}
+		$styleSelect = ("<select name='stylesheet'>\n");
+		foreach(getStyles() as $styleName=>$styleUri) {
+			if ($styleUri == $Config['stylesheet']) {
+				$selected = " selected='selected'";
+			} else {
+				$selected = "";
+			}
+			$styleSelect .= "  <option$selected value=\"$styleUri\">$styleName</option>\n";
+		}
+		$styleSelect .= ("</select>\n");
+		$style = "";
+		print(getHtmlHead("Administration: ".ucfirst($section)."",$style)."<body>\n\n".
+				   "<p id='nav'><a href=\"".$_SERVER['PHP_SELF']."?title=".$Config['homepage']."\"".
+				   " title=\"Go to homepage: ".$Config['homepage']."\">[home]</a></p>\n\n".
+				   "<h1>Administration: ".ucfirst($section)."</h1>\n\n".
+				   "<div id='page'>\n");
+		if ($message != "") {
+			print("<p class='warning'>$message</p>");
+		}
+		print("  <form action=\"".$_SERVER['PHP_SELF']."?admin=general\" method=\"post\">\n".
+				   "    <p>Thanks to the <a href=\"http://www.w3.org/StyleSheets/Core/\">".
+				   "W3C's Core Styles</a> for the different styles listed here, any ".
+				   "of which you can apply to your wiki.</p>\n    <p>Choose your style: ".
+				   "\n$styleSelect</p>\n</div><!-- end div#page -->\n\n<p id='edit'>".
+				   "<input name='submit' type='submit' value='Save' /></p>\n".
+				   "</form>\n\n</body>\n</html>\n");
+    }
 }
 
 function doLogin($queryString) {
@@ -77,9 +133,6 @@ function doLogin($queryString) {
         if ($_POST['login'] == "Login") {
             if ($_POST['uid'] == $Config['username'] && $_POST['pwd'] == $Config['password']) {
                 $_SESSION['logged-in'] = TRUE;
-                //putMessage("<p><strong>Logged in.</strong></p><p><a
-                //           href='".$_SERVER['PHP_SELF']."?$queryString'
-                //         class='button'>Continue</a></p>");
             } else {
                 $_SESSION['logged-in'] = FALSE;
                 putMessage("<p>Wrong password and/or username.<br />Please try again.</p><p><a
@@ -87,7 +140,7 @@ function doLogin($queryString) {
                            class='button'>Back</a></p>");
             }
         } else {
-            putMessage("<form action='".$_SERVER['PHP_SELF']."?$queryString'
+            putMessage("<h1>Please log in:</h1>\n<form action='".$_SERVER['PHP_SELF']."?$queryString'
                        method='post'><p>Username: <input type='text' name='uid' />
                        </p><p>Password: <input type='password' name='pwd' /></p>
                        <p><input type='submit' name='login' value='Login' /></p>
@@ -130,6 +183,18 @@ function displayTex() {
     }
 } // end displayTex()
 
+function getStyles() {
+	return(array("W3C Core: Chocolate"=>"http://www.w3.org/StyleSheets/Core/Chocolate",
+	             "W3C Core: Midnight"=>"http://www.w3.org/StyleSheets/Core/Midnight",
+	             "W3C Core: Modernist"=>"http://www.w3.org/StyleSheets/Core/Modernist",
+	             "W3C Core: Oldstyle"=>"http://www.w3.org/StyleSheets/Core/Oldstyle",
+	             "W3C Core: Steely"=>"http://www.w3.org/StyleSheets/Core/Steely",
+	             "W3C Core: Swiss"=>"http://www.w3.org/StyleSheets/Core/Swiss",
+	             "W3C Core: Traditional"=>"http://www.w3.org/StyleSheets/Core/Traditional",
+	             "W3C Core: Ultramarine"=>"http://www.w3.org/StyleSheets/Core/Ultramarine"
+	             ));
+}
+
 function pageIndex() {
 	global $Config;
     $dh  = opendir("./data/pages");
@@ -137,30 +202,20 @@ function pageIndex() {
         if (substr($filename, 0, 1) != ".") $files[] = $filename;
     }
     sort($files);
-    $style=("  ol {list-style-type:none}\n".
-            "    ol li a {display:block; line-height: 0.7em; float:left; width:30%; border-bottom:1px dotted black; margin:0 0.3em}\n".
-            "    ol li a {text-decoration:none; color:blue}\n".
-            "    h1, p {text-align:center}");
+    /*$style=("  ol {list-style-type:none}\n".
+            "    ol li a {display:block; float:left; width:30%; margin:0 0.3em}\n".
+            "    ol li a {text-decoration:none; color:blue}");*/
     print(getHtmlHead("Title Index",$style)."<body>\n\n");
-    print("<p><a href='".$_SERVER['PHP_SELF']."?title=".$Config['homepage']."'>".
-          "[Home]</a></p>\n\n<h1>PrintWiki Title Index</h1>\n<hr />\n\n<ol>\n");
+    print("<p id='nav'><a href='".$_SERVER['PHP_SELF']."?title=".$Config['homepage']."'>".
+          "[Home]</a></p>\n\n<h1>PrintWiki Title Index</h1>\n\n<div id='page'>\n  <ol>\n");
     foreach ($files as $title) {
-        echo "  <li><a href='index.php?title=$title'>$title</a></li>\n";
+        echo "    <li><a href='index.php?title=$title'>$title</a></li>\n";
     }
-    echo "</ol>\n\n</body>\n</html>\n";
+    echo "  </ol>\n</div><!-- end div#page -->\n\n<p id='edit'>&nbsp;</p>\n\n</body>\n</html>\n";
 } // end pageIndex()
 
 function editPage($title) {
     doLogin("edit=$title");
-    $style = ("  body {margin:1em; padding:0; border:2px outset grey}\n    textarea ".
-              "{width:98%; margin:0; padding:0.5em 0; ".
-              "border:0; background-color:white; font-family:sans-serif}\n    ".
-              "h1, p#actions {border:0; border-bottom:1px solid grey; margin:0; ".
-              "background-color:#B9EA93; color:black; text-decoration:none; ".
-              "padding:0.3em; font-size:1em; text-align:center}\n    ".
-              "h1 em {letter-spacing:0.4em}\n    ".
-              "p#actions {border:0; border-top:1px solid grey; text-align:center}\n    ".
-              "p#textarea {padding:0; margin:0; text-align:center; border:2px inset grey}");
     if ($_SESSION['logged-in']) {
         if ($_POST['save']) {
             $handle = fopen("./data/pages/$title",'w');
@@ -173,13 +228,16 @@ function editPage($title) {
             if (!$page = @file_get_contents("./data/pages/".$title)) {
                 $page = "This page has not yet been written.";
             }
-            print(getHtmlHead("Edit: $title",$style)."<body><h1><em>$title</em></h1>\n".
+            print(getHtmlHead("Edit: $title","")."<body><h1><em>$title</em></h1>\n".
+            "<div id='page'>\n".
+            "<pre><strong>Links:</strong> [[text]], <strong>Italics:</strong> ''text''</pre>\n".
             "<form action='".$_SERVER['PHP_SELF']."?edit=$title' method='post'>\n".
             "<p id=\"textarea\"><textarea name='page' cols='100' rows='24'>$page</textarea></p>\n".
-            "<p id='actions'><input type='submit' name='save' value='Save' />\n".
-            "<a href='".$_SERVER['PHP_SELF']."?title=$title'>Cancel</a>\n".
-            "<a href='".$_SERVER['PHP_SELF']."?logout=true'>Logout</a>\n".
-            "<a href='".$_SERVER['PHP_SELF']."?admin=general'>Administration</a>\n".
+            "</div><!-- end div#page -->\n\n".
+            "<p id='edit'><input type='submit' name='save' value='Save' />\n".
+            "<a href='".$_SERVER['PHP_SELF']."?title=$title'>[Cancel]</a>\n".
+            "<a href='".$_SERVER['PHP_SELF']."?logout=true'>[Logout]</a>\n".
+            "<a href='".$_SERVER['PHP_SELF']."?admin=general'>[Administration]</a>\n".
             "</p></body>\n</html>");        
         }
     }
@@ -197,13 +255,14 @@ function displayPage($title) {
         global $Config;
         $page = printWikiSyntax($title, $page);
         print(getHtmlHead($title,"").
-        "  <link type=\"text/css\" rel=\"stylesheet\" href=\"data/basic.css\" />\n".
         "<body>\n\n<p id='nav'><a ".
         "href='".$_SERVER['PHP_SELF']."?title=".$Config['homepage']."'>[Home]</a>".
         "<a href=\"".$_SERVER['PHP_SELF']."?view=index\">[Index]</a>\n".
         "</p>\n\n<h1>$title</h1>\n\n<div id='page'>\n\n$page\n</div><!-- end ".
         "div#page -->\n\n<p id='edit'>".
-        "<a href='".$_SERVER['PHP_SELF']."?edit=$title'>Edit</a></p>\n\n</body>\n</html>");
+        "<a href='".$_SERVER['PHP_SELF']."?edit=$title'>[Edit]</a> ".
+        "<a href='".$_SERVER['PHP_SELF']."?admin=general'>[Admin]</a>".
+        "</p>\n\n</body>\n</html>");
     }
 }
 
@@ -365,6 +424,7 @@ function install() {
                 print("<p class=\"check\">Opening <code>./data/config.php</code> with write access . . . ");
                 if ($configHandle = fopen("./data/config.php",'w')) {
                     print("<span class=\"yes\">okay</p>");
+                    $initialStylesheet = getStyles();
                     $configData = ("<?php\n\n".
                         "if (\$_SERVER['PHP_SELF'] == \"config.php\") {\n".
                         "    header(\"HTTP/1.0 403 Forbidden\");\n".
@@ -373,6 +433,7 @@ function install() {
                         "    \$Config[\"username\"] = \"".$_POST["username"]."\";\n".
                         "    \$Config[\"password\"] = \"".$_POST["password"]."\";\n".
                         "    \$Config[\"email\"]    = \"".$_POST["email"]."\";\n\n".
+                        "    \$Config[\"stylesheet\"]    = \"".$initialStylesheet['W3C Core: Oldstyle']."\";\n\n".
                         "}\n".
                         "?>");
                     print("<p class=\"check\">Writing configuration file . . . ");
@@ -435,11 +496,7 @@ function install() {
                         print("<p class=\"check\">Creating basic stylesheet
                               (<code>basic.css</code> . . . ");
                         if ($stylesheetHandle = fopen("./data/basic.css",'w')) {
-                            $stylesheetData = ("/**\n".
-                                " * W3C Core Styles: Ultramarine, Traditional, Swiss, Midnight, Oldstyle.\n".
-                                " */\n".
-                                "@import \"http://www.w3.org/StyleSheets/Core/Oldstyle\";\n".
-                                "\n".
+                            $stylesheetData = (
                                 "body, p#nav, p#edit, div#page, h1 {\n".
                                 "   border:1px solid grey;\n".
                                 "   margin:1px;\n".
@@ -460,6 +517,10 @@ function install() {
                                 "div#page {\n".
                                 "   padding:1em;\n".
                                 "   font-family: serif;\n".
+                                "}\n".
+                                "textarea {\n".
+                                "   width:97%;\n".
+                                "   margin:0;\n".
                                 "}\n".
                                 "p#edit {\n".
                                 "   text-align:center;\n".
@@ -493,23 +554,22 @@ function install() {
 
 /** Return string */
 function getHtmlHead($title, $style) {
+	global $Config;
     $head = ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n".
     "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"\n".
     "     \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n".
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en-AU\" xml:lang=\"en-AU\">\n".
     "<head>  \n<title>$title</title>\n".
     "  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n".
-    "  <style type=\"text/css\">\n".
-    "    .button {border:2px outset green; background-color:#106415; color:white; ".
-    "text-decoration:none; padding:0.3em}\n".
-    "  $style\n</style>\n</head>\n");
+    "  <link type=\"text/css\" rel=\"stylesheet\" href=\"".$Config['stylesheet']."\" />\n".
+    "  <link type=\"text/css\" rel=\"stylesheet\" href=\"data/basic.css\" />\n".
+    "  <style type=\"text/css\">\n    $style\n</style>\n</head>\n");
     return $head;
 }
 
 function putMessage($m) {
-    $style = ("#message{margin:25% auto; border:2px groove green; text-align:center;
-              background-color:#B9EA93; width:30%}");
-    print(getHtmlHead("Attention!",$style)."<body><div id=\"message\">$m</div>
+	$style = "div.page * {text-align:center}";
+    print(getHtmlHead("Attention!",$style)."<body><div id='page'>$m</div>
           </body></html>"); 
 }
 
