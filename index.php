@@ -49,6 +49,10 @@ if (!file_exists('./data/config.php') || $_GET['install']!="") {
     } else if ($_GET['view'] == "index") {
     	pageIndex();
     	
+    // Tex output.
+    } else if ($_GET['view'] == "tex") {
+    	displayTex();
+    	
     // Display page.
     } else {
         if ($_GET['title'] == '') $title = $Config['homepage'];
@@ -170,17 +174,23 @@ function url2link($subject) {
 
 function displayTex() {
     header("Content-Type: text/plain; charset=UTF-8");  
-    $dh  = opendir("pages");
+    $dh  = opendir("data/pages");
     while (false !== ($filename = readdir($dh))) {
         if (substr($filename, 0, 1) != ".") $files[] = $filename;
     }
     sort($files);
-    echo "\part{Wiki}\n\n";
+    print(
+    "\documentclass[10pt,a4paper]{book}\n".
+	"\usepackage{multicol}\n".
+	"\setcounter{secnumdepth}{-1}\n".
+	"\begin{document}\n".
+	"\begin{multicols}{3}");
     foreach ($files as $title) {
-        echo "\subsection\{$title}\n";
-        $page = @file_get_contents("pages/".$title);
-        echo texsyntax($page);
+        print("\n\n\medskip\n\bf{".strtoupper($title)."}\\\\\n");
+        $page = file_get_contents("data/pages/".$title);
+        echo texSyntax($page);
     }
+    print("\n\n\end{multicols}\n\end{document}\n");
 } // end displayTex()
 
 function getStyles() {
@@ -256,8 +266,9 @@ function displayPage($title) {
         $page = printWikiSyntax($title, $page);
         print(getHtmlHead($title,"").
         "<body>\n\n<p id='nav'><a ".
-        "href='".$_SERVER['PHP_SELF']."?title=".$Config['homepage']."'>[Home]</a>".
-        "<a href=\"".$_SERVER['PHP_SELF']."?view=index\">[Index]</a>\n".
+        "href='".$_SERVER['PHP_SELF']."?title=".$Config['homepage']."'>[Home]</a> ".
+        "<a href=\"".$_SERVER['PHP_SELF']."?view=index\">[Index]</a> \n".
+        "<a href=\"".$_SERVER['PHP_SELF']."?view=tex\">[Tex]</a> \n".
         "</p>\n\n<h1>$title</h1>\n\n<div id='page'>\n\n$page\n</div><!-- end ".
         "div#page -->\n\n<p id='edit'>".
         "<a href='".$_SERVER['PHP_SELF']."?edit=$title'>[Edit]</a> ".
