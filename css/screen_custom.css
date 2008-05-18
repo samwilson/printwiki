@@ -1,0 +1,26 @@
+
+/******************************************************************************/
+/* GENERICS */
+
+body {					width:				66ex;
+						margin:				auto;}
+p {						text-align:			justify;}
+a, a:link, a:visited {	text-decoration:	none;
+						font-variant:		small-caps;}
+a:hover {				text-decoration:	none;}
+input, textarea {		width:				100%;
+						border-style:		solid;}
+
+/******************************************************************************/
+/* CLASSES */ 
+
+p.submit {				text-align:			right;}
+p.submit input {		width:				auto;}
+:focus {				outline:			0;
+						background-color:	#FFD;}
+	
+/******************************************************************************/
+/* IDS */
+
+textarea#edit-box {		font-family: 		sans-serif;
+						padding:			0.4em;}
